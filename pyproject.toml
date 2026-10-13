@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "python-repo-template"
+name = "lab-in-the-loop"
 version = "0.1.0"
-description = "Reusable template as per my preferences."
+description = "Lab in the loop demo: a tiny PyTorch surrogate model which optimises compound concentrations against a fictitious lab."
 readme = "README.md"
 license = "MIT"
 authors = ["Sam Huguet <samhuguet1@gmail.com>"]
@@ -9,6 +9,9 @@ authors = ["Sam Huguet <samhuguet1@gmail.com>"]
 [tool.poetry.dependencies]
 python = "3.12.13"
 numpy = "2.3.5"
+torch = { version = "2.14.1", source = "pytorch-cpu" }
+fastapi = "0.143.0"
+uvicorn = "0.54.0"
 
 [tool.poetry.group.dev.dependencies]
 black = ">=25.1.0,<26.0.0"
@@ -18,6 +21,13 @@ pytest = ">=8.4.2,<9.0.0"
 mypy = ">=1.18.1,<2.0.0"
 pytest-cov = ">=7.0.0,<8.0.0"
 pre-commit = ">=4.3.0,<5.0.0"
+httpx = "0.28.1"
+
+# CPU-only torch wheels. The default PyPI wheel bundles CUDA and adds several GB.
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

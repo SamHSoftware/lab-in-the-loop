@@ -2,4 +2,5 @@
 poetry.lock
 *pycache*
 .mypy_cache/
-.pytest_cache/
+.pytest_cache/.venv/
+deploy/hf_space/Dockerfile

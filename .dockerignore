@@ -1,7 +1,8 @@
 # Ignore everything
-
+*
 
 # ... except for dependencies and source
-!python_repo_template
+!lab_in_the_loop
 !conda-lock.yml
 !pyproject.toml
+!README.md

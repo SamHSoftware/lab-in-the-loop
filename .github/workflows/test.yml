@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies 
         run: poetry install --with dev
 
-      - run: poetry run pytest --cov=python_repo_template --cov-report=json --cov-fail-under=90
+      - run: poetry run pytest --cov=lab_in_the_loop --cov-report=json --cov-fail-under=90
 
       - name: Extract coverage
         run: |

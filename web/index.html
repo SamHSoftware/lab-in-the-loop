@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab in the Loop</title>
+  <meta name="description" content="A tiny PyTorch model learns which compounds turn blue, round cells into green, square cells with big nuclei.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="intro">
+      <h1>Lab in the loop</h1>
+      <p class="lede">
+        The lab has <strong>blue, round cells with small nuclei</strong> and wants
+        <strong>green, square cells with big nuclei</strong>. Ten compounds have unknown effects.
+        A small neural net learns from each experiment and chooses the next one.
+      </p>
+    </div>
+    <div class="controls" aria-label="Controls">
+      <label class="seed">
+        <span>Biology seed</span>
+        <input id="seed" type="number" min="0" max="2147483647" step="1">
+      </label>
+      <button id="start" class="primary">Start model on server</button>
+      <button id="step" class="primary" disabled>Perform lab-in-the-loop iteration</button>
+      <button id="reset" disabled>Reset</button>
+      <p id="status" class="status" role="status" aria-live="polite">The server sleeps when nobody uses it. Start it first.</p>
+    </div>
+  </header>
+
+  <ol class="stepper" aria-label="Steps of one iteration">
+    <li data-step="1"><b>1</b><span><strong>Apply compounds</strong>The lab treats the cells</span></li>
+    <li data-step="2"><b>2</b><span><strong>Measure the error</strong>Distance from the target cells</span></li>
+    <li data-step="3"><b>3</b><span><strong>Update the model</strong>Train the weights on all lab results</span></li>
+    <li data-step="4"><b>4</b><span><strong>Freeze and propose</strong>Gradient descent on the concentrations</span></li>
+  </ol>
+
+  <main class="grid">
+    <section class="card lab-card">
+      <h2>The lab <span id="experiment-label" class="tag"></span></h2>
+      <div class="lab-body">
+        <div>
+          <div id="dish" class="dish is-empty" aria-label="Cells in the dish"></div>
+          <p id="dish-caption" class="caption">No cells yet.</p>
+        </div>
+        <div id="error-panel" class="error-panel is-waiting">
+          <p class="error-heading">Error after this experiment</p>
+          <p class="error-value"><span id="error-value">n/a</span></p>
+          <p id="error-predicted" class="caption">Sum of distances from the target. 0 is perfect, 6 is the worst.</p>
+          <div class="key">
+            <span><i class="dot measured"></i>Measured</span>
+            <span><i class="dot predicted"></i>Model predicted</span>
+            <span><i class="tick"></i>Target</span>
+          </div>
+          <div id="phenotypes" class="phenotypes"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card model-card">
+      <h2>The model <span id="model-tag" class="tag">Not trained</span></h2>
+      <div id="network" class="network"></div>
+      <div class="key">
+        <span><i class="edge positive"></i>Positive weight</span>
+        <span><i class="edge negative"></i>Negative weight</span>
+        <span>Thicker = larger</span>
+      </div>
+      <p id="model-note" class="note">The model is a small feed-forward net: 10 concentrations in, 32 hidden units, 3 phenotypes out. The drawing shows 12 of the 32 hidden units.</p>
+    </section>
+
+    <section class="card">
+      <h2>Concentrations for the next iteration</h2>
+      <div class="key">
+        <span><i class="bar-key"></i>Next</span>
+        <span><i class="tick"></i>Previous</span>
+      </div>
+      <div id="compounds" class="compounds"></div>
+      <p id="compound-note" class="note">From 0 to 1. A sigmoid keeps every value above 0 and below 1.</p>
+    </section>
+
+    <section class="card why-card">
+      <h2>Why a model?</h2>
+      <div class="flow">
+        <span class="box">Concentrations</span><span class="arrow">→</span>
+        <span class="box dark">Lab (cells)</span><span class="arrow">→</span>
+        <span class="box">Phenotype</span>
+      </div>
+      <p class="flow-note bad">✗ No gradients. You cannot backpropagate through a real lab.</p>
+      <div class="flow">
+        <span class="box">Concentrations</span><span class="arrow back">⇠</span>
+        <span class="box accent">Neural net (surrogate)</span><span class="arrow back">⇠</span>
+        <span class="box">Predicted error</span>
+      </div>
+      <p class="flow-note good">✓ The net imitates the lab and is differentiable, so gradients flow back to the concentrations.</p>
+      <p class="caption">
+        The net learns the lab from past experiments (step 3). With its weights frozen, gradient descent
+        through the net changes the concentrations (step 4). The lab then tests them, which corrects the net.
+      </p>
+    </section>
+
+    <section class="card chart-card">
+      <h2>Error over experiments</h2>
+      <div id="chart" class="chart"></div>
+      <details>
+        <summary>Show as a table</summary>
+        <table>
+          <thead><tr><th>Experiment</th><th>Chosen by</th><th>Error</th></tr></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </details>
+    </section>
+  </main>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
