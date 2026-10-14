@@ -1,8 +1,0 @@
-# Ignore everything
-*
-
-# ... except for dependencies and source
-!lab_in_the_loop
-!conda-lock.yml
-!pyproject.toml
-!README.md

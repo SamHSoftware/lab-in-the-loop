@@ -3,12 +3,12 @@
 from dataclasses import dataclass
 
 import numpy as np
-import torch
 
 from lab_in_the_loop.simulator import N_COMPOUNDS, Lab, phenotype_loss
 from lab_in_the_loop.surrogate import (
-    SurrogateNet,
+    Ensemble,
     propose_concentrations,
+    sigmoid,
     train_ensemble,
 )
 
@@ -75,12 +75,12 @@ def choose_without_model(seed: int, experiment_index: int) -> np.ndarray:
         logits = rng.normal(
             loc=START_LOGIT_MEAN, scale=START_LOGIT_STD, size=N_COMPOUNDS
         )
-        return 1.0 / (1.0 + np.exp(-logits))
+        return sigmoid(logits=logits)
     return rng.uniform(*SCREEN_CONCENTRATION_RANGE, size=N_COMPOUNDS)
 
 
 def snapshot_model(
-    ensemble: list[SurrogateNet], concentrations: np.ndarray, phenotypes: np.ndarray
+    ensemble: Ensemble, concentrations: np.ndarray, phenotypes: np.ndarray
 ) -> ModelSnapshot:
     """Summarise the trained model for the network drawing on the web page.
 
@@ -88,22 +88,20 @@ def snapshot_model(
     prediction of all nets on the training data.
 
     Args:
-        ensemble (list[SurrogateNet]): Trained nets.
+        ensemble (Ensemble): Trained nets.
         concentrations (np.ndarray): Training inputs, shape (n, 10).
         phenotypes (np.ndarray): Training targets, shape (n, 3).
 
     Returns:
         snapshot (ModelSnapshot): Fit error and the weights of the first net.
     """
-    inputs = torch.tensor(concentrations, dtype=torch.float32)
-    with torch.no_grad():
-        mean_prediction = torch.stack([net(inputs) for net in ensemble]).mean(dim=0)
-    first_net_weights = ensemble[0].state_dict()
+    _, outputs = ensemble.forward(inputs=concentrations)
+    mean_prediction = outputs.mean(axis=0)
     return ModelSnapshot(
         n_experiments=len(concentrations),
-        fit_error=float(np.mean((mean_prediction.numpy() - phenotypes) ** 2)),
-        input_hidden_weights=first_net_weights["layers.0.weight"].tolist(),
-        hidden_output_weights=first_net_weights["layers.2.weight"].tolist(),
+        fit_error=float(np.mean((mean_prediction - phenotypes) ** 2)),
+        input_hidden_weights=ensemble.hidden_weights[0].tolist(),
+        hidden_output_weights=ensemble.output_weights[0].tolist(),
     )
 
 
@@ -112,7 +110,7 @@ def run_step(seed: int, history: list[list[float]]) -> StepResult:
 
     The last row of the history holds the concentrations to apply now. The lab
     measures them, the model is retrained on all experiments, and then the frozen
-    model proposes the next concentrations. The server keeps no state between calls.
+    model proposes the next concentrations. Nothing is stored between calls.
 
     Args:
         seed (int): Session seed, which fixes the hidden biology.
@@ -166,7 +164,7 @@ def run_step(seed: int, history: list[list[float]]) -> StepResult:
         proposal = Proposal(
             experiment_index=next_index,
             method="model",
-            concentrations=next_concentrations.astype(np.float64).tolist(),
+            concentrations=next_concentrations.tolist(),
             predicted_phenotype=predicted.tolist(),
         )
 

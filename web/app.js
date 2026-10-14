@@ -1,11 +1,11 @@
 "use strict";
 
-const { apiUrl, screenExperiments } = window.LAB_CONFIG;
+// Must match N_SCREEN_EXPERIMENTS in lab_in_the_loop/loop.py.
+const screenExperiments = 5;
 const N_CELLS = 10;
 const N_COMPOUNDS = 10;
 const N_HIDDEN_SHOWN = 12;
 const N_HIDDEN = 32;
-const WAKE_TIMEOUT_MS = 5 * 60 * 1000;
 const PHENOTYPES = [
   { name: "Colour", short: "Colour", ends: ["red", "green"] },
   { name: "Shape", short: "Shape", ends: ["round", "square"] },
@@ -13,7 +13,7 @@ const PHENOTYPES = [
 ];
 const METHOD_LABELS = { start: "start", screen: "random screen", model: "model" };
 
-// The browser keeps the whole session. The server keeps nothing.
+// The page keeps the whole session. Python keeps nothing between calls.
 // history: concentrations applied so far. next: the proposal for the next iteration.
 const state = { seed: 0, history: [], results: [], next: null, ready: false, busy: false };
 
@@ -40,37 +40,39 @@ function mulberry32(seed) {
   };
 }
 
-/* ---------- Server calls ---------- */
+/* ---------- Python in the browser ---------- */
 
-async function fetchJson(path, options = {}, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(apiUrl + path, { ...options, signal: controller.signal });
-    if (!response.ok) throw new Error(`The server replied with status ${response.status}.`);
-    return await response.json();
-  } finally {
-    clearTimeout(timer);
-  }
+// The Python package runs in a Web Worker (worker.js). Each call gets an id,
+// so the answer can find the promise that waits for it.
+let worker = null;
+let nextMessageId = 0;
+const pending = new Map();
+
+function callPython(message) {
+  const id = nextMessageId++;
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    worker.postMessage({ id, ...message });
+  });
 }
 
-async function waitForServer() {
-  const deadline = Date.now() + WAKE_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      await fetchJson("/health", {}, 10000);
-      return;
-    } catch {
-      await sleep(3000);
-    }
-  }
-  throw new Error("The server did not wake up. Try again in a minute.");
+function startPython() {
+  worker = new Worker("worker.js", { type: "module" });
+  worker.onmessage = ({ data }) => {
+    const { resolve, reject } = pending.get(data.id);
+    pending.delete(data.id);
+    if (data.error) reject(new Error(data.error.trim().split("\n").pop()));
+    else resolve(data.result);
+  };
+  worker.onerror = (event) => {
+    for (const { reject } of pending.values()) reject(new Error(event.message || "Python could not start."));
+    pending.clear();
+  };
+  return callPython({ type: "load" });
 }
 
 function postStep(history) {
-  const body = JSON.stringify({ seed: state.seed, history });
-  const options = { method: "POST", headers: { "Content-Type": "application/json" }, body };
-  return fetchJson("/step", options, 60000);
+  return callPython({ type: "step", seed: state.seed, history });
 }
 
 /* ---------- Status, buttons and stepper ---------- */
@@ -484,7 +486,7 @@ async function guarded(action) {
     await action();
   } catch (error) {
     $("dish").classList.remove("incubating");
-    setStatus(error.name === "AbortError" ? "The server took too long. Try again." : error.message);
+    setStatus(`Error: ${error.message}`);
   } finally {
     setBusy(false);
   }
@@ -507,8 +509,8 @@ function resetSession() {
 }
 
 async function start() {
-  setStatus("Waking the server. After a quiet period this can take one or two minutes...", true);
-  await waitForServer();
+  setStatus("Loading Python and NumPy into your browser (about 10 MB; fast after the first time)...", true);
+  await startPython();
   state.ready = true;
   await loadStartConcentrations();
 }

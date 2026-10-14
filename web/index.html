@@ -23,10 +23,10 @@
         <span>Biology seed</span>
         <input id="seed" type="number" min="0" max="2147483647" step="1">
       </label>
-      <button id="start" class="primary">Start model on server</button>
+      <button id="start" class="primary">Load the model</button>
       <button id="step" class="primary" disabled>Perform lab-in-the-loop iteration</button>
       <button id="reset" disabled>Reset</button>
-      <p id="status" class="status" role="status" aria-live="polite">The server sleeps when nobody uses it. Start it first.</p>
+      <p id="status" class="status" role="status" aria-live="polite">The model runs in your browser with Python (Pyodide). Load it first.</p>
     </div>
   </header>
 
@@ -113,7 +113,6 @@
     </section>
   </main>
 
-  <script src="config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

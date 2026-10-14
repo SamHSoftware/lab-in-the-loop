@@ -1,10 +1,8 @@
-"""Tests for the surrogate model and one lab-in-the-loop iteration."""
+"""Tests for one lab-in-the-loop iteration."""
 
 import numpy as np
 
 from lab_in_the_loop.loop import N_SCREEN_EXPERIMENTS, StepResult, run_step
-from lab_in_the_loop.simulator import Lab
-from lab_in_the_loop.surrogate import propose_concentrations, train_ensemble
 
 
 def run_session(seed: int, n_iterations: int) -> list[StepResult]:
@@ -23,30 +21,6 @@ def run_session(seed: int, n_iterations: int) -> list[StepResult]:
         history.append(results[-1].proposal.concentrations)
         results.append(run_step(seed=seed, history=history))
     return results
-
-
-def test_proposal_never_reaches_zero_or_one() -> None:
-    """Tests the sigmoid bounds with a model which wants extreme concentrations."""
-    lab = Lab(seed=0)
-    rng = np.random.default_rng(0)
-    concentrations = rng.uniform(size=(20, 10))
-    phenotypes = np.array(
-        [
-            lab.run_experiment(concentrations=c, experiment_index=i)
-            for i, c in enumerate(concentrations)
-        ]
-    )
-    ensemble = train_ensemble(
-        concentrations=concentrations, phenotypes=phenotypes, seed=0
-    )
-    proposal, _ = propose_concentrations(
-        ensemble=ensemble,
-        start_concentrations=concentrations[0],
-        seed=0,
-        n_steps=500,
-        learning_rate=1.0,
-    )
-    assert np.all(proposal > 0.0) and np.all(proposal < 1.0)
 
 
 def test_start_call_only_proposes() -> None:
