@@ -1,6 +1,7 @@
 # Lab in the loop
 
 ![Licence](https://img.shields.io/badge/Licence-MIT-blue)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/SamHSoftware/a3a89be5685fb1b48eac281025e4c214/raw/coverage.json)
 
 A small demo of lab-in-the-loop optimisation. A fictitious lab has blue, round cells with
 small nuclei and wants green, square cells with big nuclei. Ten compounds have unknown effects.
