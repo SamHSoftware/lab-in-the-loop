@@ -2,6 +2,8 @@
 
 // Must match N_SCREEN_EXPERIMENTS in lab_in_the_loop/loop.py.
 const screenExperiments = 5;
+// Seed 10 reaches its optimum in about 12 experiments (scan of seeds 0 to 99).
+const DEFAULT_SEED = 10;
 const N_CELLS = 10;
 const N_COMPOUNDS = 10;
 const N_HIDDEN_SHOWN = 12;
@@ -516,7 +518,7 @@ async function start() {
 }
 
 function init() {
-  state.seed = Math.floor(Math.random() * 100000);
+  state.seed = DEFAULT_SEED;
   $("seed").value = state.seed;
   buildDish();
   buildPhenotypes();
